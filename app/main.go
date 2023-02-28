@@ -17,6 +17,7 @@ func main() {
 	ps, err := exec.Command(command, args...).CombinedOutput()
 	if err != nil {
 		// write to stdout
+		fmt.Println(err.Error())
 		os.Stderr.Write([]byte(err.Error()))
 	}
 
