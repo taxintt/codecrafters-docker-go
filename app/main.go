@@ -14,12 +14,12 @@ func main() {
 	command := os.Args[3]
 	args := os.Args[4:len(os.Args)]
 
-	cmd := exec.Command(command, args...)
-	output, err := cmd.Output()
+	ps, err := exec.Command(command, args...).CombinedOutput()
 	if err != nil {
-		fmt.Printf("Err: %v", err)
-		os.Exit(1)
+		// write to stdout
+		os.Stderr.Write([]byte(err.Error()))
 	}
 
-	fmt.Println(string(output))
+	// write to stdout
+	os.Stdout.Write(ps)
 }
