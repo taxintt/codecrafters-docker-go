@@ -30,11 +30,6 @@ func main() {
 	go io.Copy(os.Stdout, stdout)
 	go io.Copy(os.Stderr, stderr)
 
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-	fmt.Println(cmd.ProcessState.ExitCode())
+	cmd.Run()
 	os.Exit(cmd.ProcessState.ExitCode())
 }
