@@ -36,10 +36,10 @@ func main() {
 	syscall.Chroot(args[1])
 	syscall.Chdir(args[1])
 
-	if err := os.Mkdir("dev", os.ModePerm); err != nil {
+	if err := os.Mkdir(fmt.Sprintf("%s%s", args[1], "dev"), os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
-	err = os.Chmod("dev", 0555)
+	err = os.Chmod(fmt.Sprintf("%s%s", args[1], "dev"), 0555)
 	if err != nil {
 		log.Fatal(err)
 	}
