@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"syscall"
@@ -37,11 +35,11 @@ func main() {
 	syscall.Chroot(args[1])
 	syscall.Chdir(args[1])
 
-	file, err := ioutil.TempFile(args[1]+"/dev", "null")
+	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	defer os.Remove(file.Name())
+	defer devnull.Close()
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
