@@ -35,7 +35,7 @@ func main() {
 	syscall.Chroot(args[1])
 	syscall.Chdir(args[1])
 
-	devnull, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0555)
+	devnull, err := os.OpenFile(os.DevNull, os.O_RDONLY|os.O_CREATE, 0555)
 	if err != nil {
 		panic(err)
 	}
