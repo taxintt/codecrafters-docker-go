@@ -33,9 +33,6 @@ func main() {
 	go io.Copy(os.Stdout, stdout)
 	go io.Copy(os.Stderr, stderr)
 
-	syscall.Chroot(args[1])
-	syscall.Chdir(args[1])
-
 	if err := os.Mkdir(fmt.Sprintf("%s/%s", args[1], "dev"), os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
@@ -48,6 +45,9 @@ func main() {
 		panic(err)
 	}
 	defer devnull.Close()
+
+	syscall.Chroot(args[1])
+	syscall.Chdir(args[1])
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
