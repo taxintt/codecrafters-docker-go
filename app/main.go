@@ -37,7 +37,7 @@ func main() {
 	syscall.Chroot(args[1])
 	syscall.Chdir(args[1])
 
-	file, err := ioutil.TempFile(args[1], "dev/null")
+	file, err := ioutil.TempFile(args[1]+"/dev", "null")
 	if err != nil {
 		log.Fatal(err)
 	}
