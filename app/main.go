@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
@@ -30,6 +32,15 @@ func main() {
 	go io.Copy(os.Stdout, stdout)
 	go io.Copy(os.Stderr, stderr)
 
-	cmd.Run()
-	os.Exit(cmd.ProcessState.ExitCode())
+	syscall.Chroot(args[1])
+	syscall.Chdir(args[1])
+
+	if err := cmd.Run(); err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.ExitCode())
+		}
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 }
