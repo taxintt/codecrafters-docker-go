@@ -57,7 +57,6 @@ func main() {
 	command := os.Args[3]
 	args := os.Args[4:len(os.Args)]
 	cmd := exec.Command(command, args...)
-	setupOutput(cmd)
 
 	// create executable path (e.g. /usr/local/bin/docker-explorer)
 	// https://text.baldanders.info/golang/deprecation-of-ioutil/
@@ -82,6 +81,8 @@ func main() {
 		fmt.Printf("chroot err: %v", err)
 		os.Exit(1)
 	}
+
+	setupOutput(cmd)
 
 	// chroot
 	syscall.Chroot(chrootDir)
