@@ -73,7 +73,10 @@ func main() {
 	copyExecutablePath(command, chrootDir)
 
 	// workaround for chroot
-	os.Mkdir(filepath.Join(chrootDir, "dev"), os.ModeDir)
+	os.Mkdir(filepath.Join(chrootDir, "dev"), 0750)
+	if err := os.MkdirAll(path.Join(chrootDir, "dev"), 0750); err != nil {
+		os.Exit(1)
+	}
 	ioutil.WriteFile(path.Join(chrootDir, "dev", "null"), []byte{}, 0644)
 
 	// chroot
