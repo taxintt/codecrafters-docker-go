@@ -80,7 +80,7 @@ func main() {
 	devnull.Close()
 
 	// chroot
-	syscall.Chroot(args[1])
+	syscall.Chroot(chrootDir)
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
