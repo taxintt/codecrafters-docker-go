@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"syscall"
 )
 
@@ -67,15 +68,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	// if err := os.MkdirAll(filepath.Join(chrootDir, command), os.ModeDir); err != nil {
-	// 	fmt.Printf("error creating executable dir: %v", err)
-	// 	os.Exit(1)
-	// }
-	executablePathInChrootDir := path.Join(chrootDir, command)
-	if err := os.MkdirAll(path.Dir(executablePathInChrootDir), 0750); err != nil {
+	if err := os.MkdirAll(filepath.Join(chrootDir, command), os.ModeDir); err != nil {
+		fmt.Printf("error creating executable dir: %v", err)
 		os.Exit(1)
 	}
-	copyExecutablePath(command, executablePathInChrootDir)
+	// executablePathInChrootDir := path.Join(chrootDir, command)
+	// if err := os.MkdirAll(path.Dir(executablePathInChrootDir), 0750); err != nil {
+	// 	os.Exit(1)
+	// }
+	copyExecutablePath(command, filepath.Join(chrootDir, command))
 
 	// // workaround for chroot
 	// if err := os.MkdirAll(path.Join(chrootDir, "dev"), os.ModeDir); err != nil {
