@@ -40,7 +40,7 @@ func copyExecutablePath(source, dest string) error {
 	}
 	defer sourceFile.Close()
 
-	destinationFile, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE, sourceFileStat.Mode())
+	destinationFile, err := os.OpenFile(dest, os.O_RDWR|os.O_WRONLY, sourceFileStat.Mode())
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func main() {
 	copyExecutablePath(command, chrootDir)
 
 	// workaround for chroot
-	if err := os.MkdirAll(path.Join(chrootDir, "dev"), 0750); err != nil {
+	if err := os.MkdirAll(path.Join(chrootDir, "dev"), os.ModeDir); err != nil {
 		os.Exit(1)
 	}
 	devnull, _ := os.Create(filepath.Join(chrootDir, "/dev/null"))
