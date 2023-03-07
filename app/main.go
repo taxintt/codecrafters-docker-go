@@ -71,7 +71,7 @@ func main() {
 		fmt.Printf("error creating executable dir: %v", err)
 		os.Exit(1)
 	}
-	copyExecutablePath(command, chrootDir)
+	copyExecutablePath(command, filepath.Join(chrootDir, command))
 
 	// workaround for chroot
 	if err := os.MkdirAll(path.Join(chrootDir, "dev"), os.ModeDir); err != nil {
