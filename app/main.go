@@ -64,19 +64,25 @@ func main() {
 	// https://text.baldanders.info/golang/deprecation-of-ioutil/
 	chrootDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		fmt.Printf("error creating chroot dir: %v", err)
+		fmt.Printf("error creating temp dir: %v", err)
 		os.Exit(1)
 	}
 	if err := os.MkdirAll(filepath.Join(chrootDir, command), 0750); err != nil {
+		fmt.Printf("error creating executable dir: %v", err)
 		os.Exit(1)
 	}
 	copyExecutablePath(command, chrootDir)
 
 	// workaround for chroot
 	if err := os.MkdirAll(path.Join(chrootDir, "dev"), os.ModeDir); err != nil {
+		fmt.Printf("error creating /dev dir: %v", err)
 		os.Exit(1)
 	}
-	devnull, _ := os.Create(filepath.Join(chrootDir, "/dev/null"))
+	devnull, err := os.Create(filepath.Join(chrootDir, "/dev/null"))
+	if err != nil {
+		fmt.Printf("error creating /dev/null file: %v", err)
+		os.Exit(1)
+	}
 	devnull.Close()
 
 	// chroot
