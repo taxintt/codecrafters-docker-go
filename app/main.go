@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 )
 
@@ -33,21 +33,37 @@ func main() {
 	go io.Copy(os.Stdout, stdout)
 	go io.Copy(os.Stderr, stderr)
 
-	if err := os.Mkdir(fmt.Sprintf("%s/%s", args[1], "dev"), os.ModePerm); err != nil {
-		log.Fatal(err)
-	}
-	err = os.Chmod(fmt.Sprintf("%s/%s", args[1], "dev"), 0555)
+	err = os.MkdirAll(filepath.Join("mydocker", filepath.Dir(command)), os.ModeDir)
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
-	devnull, err := os.OpenFile(os.DevNull, os.O_RDONLY|os.O_CREATE, 0555)
+	defer os.RemoveAll("mydocker")
+	src, err := os.Open(command)
 	if err != nil {
-		panic(err)
+		os.Exit(1)
 	}
-	defer devnull.Close()
+	srcInfo, err := src.Stat()
+	if err != nil {
+		os.Exit(1)
+	}
+
+	dst, err := os.OpenFile(filepath.Join("mydocker", command), os.O_CREATE|os.O_WRONLY, srcInfo.Mode())
+	if err != nil {
+		os.Exit(1)
+	}
+	if _, err := io.Copy(dst, src); err != nil {
+		os.Exit(1)
+	}
+
+	src.Close()
+	dst.Close()
+
+	// workaround for chroot
+	os.Mkdir(filepath.Join("mydocker", "dev"), os.ModeDir)
+	devnull, _ := os.Create(filepath.Join("mydocker", "/dev/null"))
+	devnull.Close()
 
 	syscall.Chroot(args[1])
-	syscall.Chdir(args[1])
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
