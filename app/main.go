@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"syscall"
 )
 
@@ -68,31 +67,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := os.MkdirAll(filepath.Join(chrootDir, command), os.ModeDir); err != nil {
-		fmt.Printf("error creating executable dir: %v", err)
+	if err = copyExecutableIntoDir(chrootDir, command); err != nil {
+		fmt.Printf("error copying executable into chroot dir: %v", err)
 		os.Exit(1)
 	}
-	// executablePathInChrootDir := path.Join(chrootDir, command)
-	// if err := os.MkdirAll(path.Dir(executablePathInChrootDir), 0750); err != nil {
-	// 	os.Exit(1)
-	// }
-	copyExecutablePath(command, filepath.Join(chrootDir, command))
 
-	// // workaround for chroot
-	// if err := os.MkdirAll(path.Join(chrootDir, "dev"), os.ModeDir); err != nil {
-	// 	fmt.Printf("error creating /dev dir: %v", err)
-	// 	os.Exit(1)
-	// }
-	// devnull, err := os.Create(filepath.Join(chrootDir, "/dev/null"))
-	// if err != nil {
-	// 	fmt.Printf("error creating /dev/null file: %v", err)
-	// 	os.Exit(1)
-	// }
-	// devnull.Close()
-	if err := os.MkdirAll(path.Join(chrootDir, "dev"), 0750); err != nil {
+	// Create /dev/null so that cmd.Run() doesn't complain
+	if err = createDevNull(chrootDir); err != nil {
+		fmt.Printf("error creating /dev/null: %v", err)
 		os.Exit(1)
 	}
-	ioutil.WriteFile(path.Join(chrootDir, "dev", "null"), []byte{}, 0644)
+
+	if err = syscall.Chroot(chrootDir); err != nil {
+		fmt.Printf("chroot err: %v", err)
+		os.Exit(1)
+	}
 
 	// chroot
 	syscall.Chroot(chrootDir)
@@ -105,4 +94,22 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+}
+
+func copyExecutableIntoDir(chrootDir string, executablePath string) error {
+	executablePathInChrootDir := path.Join(chrootDir, executablePath)
+
+	if err := os.MkdirAll(path.Dir(executablePathInChrootDir), 0750); err != nil {
+		return err
+	}
+
+	return copyExecutablePath(executablePath, executablePathInChrootDir)
+}
+
+func createDevNull(chrootDir string) error {
+	if err := os.MkdirAll(path.Join(chrootDir, "dev"), 0750); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path.Join(chrootDir, "dev", "null"), []byte{}, 0644)
 }
