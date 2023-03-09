@@ -1,6 +1,3 @@
-//go:build linux
-// +build linux
-
 package main
 
 import (
@@ -77,8 +74,9 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Chroot:     rootDir,
-		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWNET | syscall.CLONE_NEWIPC | syscall.CLONE_NEWCGROUP | syscall.CLONE_NEWUSER,
+		Chroot:  rootDir,
+		Setpgid: true,
+		Pgid:    1,
 	}
 
 	if err := cmd.Run(); err != nil {
