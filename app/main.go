@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 )
 
 func setupOutput(cmd *exec.Cmd) {
@@ -65,9 +66,11 @@ func main() {
 	devnull, _ := os.Create(filepath.Join(rootDir, "/dev/null"))
 	devnull.Close()
 
-	chrootArgs := []string{rootDir, command}
-	chrootArgs = append(chrootArgs, args...)
-	cmd := exec.Command("chroot", chrootArgs...)
+	if err = syscall.Chroot(rootDir); err != nil {
+		fmt.Printf("chroot err: %v", err)
+		os.Exit(1)
+	}
+	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
