@@ -33,7 +33,7 @@ func main() {
 	// fmt.Println("Logs from your program will appear here!")
 
 	command := os.Args[3]
-	args := os.Args[4:len(os.Args)]
+	// args := os.Args[4:len(os.Args)]
 
 	rootDir, err := ioutil.TempDir("", "")
 	if err := os.MkdirAll(filepath.Join(rootDir, filepath.Dir(command)), os.ModeDir); err != nil {
@@ -70,13 +70,16 @@ func main() {
 		fmt.Printf("chroot err: %v", err)
 		os.Exit(1)
 	}
-	cmd := exec.Command(command, args...)
+
+	childargs := []string{"init", command}
+	cmd := exec.Command("/proc/self/exe", childargs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	// cmd.SysProcAttr = &syscall.SysProcAttr{
-	// 	Setpgid: true,
-	// 	Pgid:    1,
-	// }
+	cmd.Stdin = os.Stdin
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+		Pgid:    1,
+	}
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
