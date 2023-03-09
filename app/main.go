@@ -66,13 +66,17 @@ func main() {
 	devnull, _ := os.Create(filepath.Join(rootDir, "/dev/null"))
 	devnull.Close()
 
-	if err = syscall.Chroot(rootDir); err != nil {
-		fmt.Printf("chroot err: %v", err)
-		os.Exit(1)
-	}
+	// if err = syscall.Chroot(rootDir); err != nil {
+	// 	fmt.Printf("chroot err: %v", err)
+	// 	os.Exit(1)
+	// }
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Chroot:     rootDir,
+		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | syscall.CLONE_NEWNET | syscall.CLONE_NEWIPC | syscall.CLONE_NEWCGROUP | syscall.CLONE_NEWUSER,
+	}
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
