@@ -73,11 +73,10 @@ func main() {
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		// Chroot:  rootDir,
-		Setpgid: true,
-		Pgid:    1,
-	}
+	// cmd.SysProcAttr = &syscall.SysProcAttr{
+	// 	Setpgid: true,
+	// 	Pgid:    1,
+	// }
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
