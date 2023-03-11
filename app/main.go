@@ -12,11 +12,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
-type token struct {
-	token       string `json:"token"`
-	accessToken string `json:"access_token"`
+type tokenAPIResponse struct {
+	Token       string    `json:"token"`
+	AccessToken string    `json:"access_token"`
+	ExpiresIn   int       `json:"expires_in"`
+	IssuedAt    time.Time `json:"issued_at"`
 }
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
@@ -116,8 +119,7 @@ func createDevNullDir(chrootDir string) error {
 }
 
 func getBearerToken() (string, error) {
-	var tokens []token
-
+	var apiResponse tokenAPIResponse
 	service := "registry.hub.docker.com"
 	url := fmt.Sprintf(`http://auth.docker.io/token?service=%s`, service)
 
@@ -128,11 +130,17 @@ func getBearerToken() (string, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode == http.StatusOK {
-		body, _ := ioutil.ReadAll(response.Body)
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return "", fmt.Errorf("failed to read http response body: %w", err)
+		}
 
-		if err := json.Unmarshal(body, &tokens); err != nil {
+		if err := json.Unmarshal(body, &apiResponse); err != nil {
 			return "", fmt.Errorf("failed to parse http response: %w", err)
 		}
+
+		return apiResponse.Token, nil
 	}
-	return "", nil
+
+	return "", fmt.Errorf("GET http://auth.docker.io/token is not 200 OK: %w", err)
 }
