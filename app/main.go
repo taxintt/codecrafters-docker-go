@@ -1,18 +1,23 @@
-//go:build linux
-
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 )
+
+type token struct {
+	token       string `json:"token"`
+	accessToken string `json:"access_token"`
+}
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
 func main() {
@@ -30,12 +35,12 @@ func main() {
 
 	// copy executable file (e.g. ls)
 	if err = copyExecutableFile(command, chrootDir); err != nil {
-		log.Fatal(fmt.Errorf("failed to copy executable file: %w", err))
+		log.Fatal(err)
 	}
 
 	// workaround for chroot
 	if err := createDevNullDir(chrootDir); err != nil {
-		log.Fatal(fmt.Errorf("failed to create /dev/null file: %w", err))
+		log.Fatal(err)
 	}
 
 	if err = syscall.Chroot(chrootDir); err != nil {
@@ -48,6 +53,12 @@ func main() {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWPID,
 	}
+
+	token, err := getBearerToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(token) // debug
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
@@ -102,4 +113,26 @@ func createDevNullDir(chrootDir string) error {
 		return fmt.Errorf("failed to close /dev/null file: %w", err)
 	}
 	return nil
+}
+
+func getBearerToken() (string, error) {
+	var tokens []token
+
+	service := "registry.hub.docker.com"
+	url := fmt.Sprintf(`http://auth.docker.io/token?service=%s`, service)
+
+	response, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to call GET http://auth.docker.io/token: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusOK {
+		body, _ := ioutil.ReadAll(response.Body)
+
+		if err := json.Unmarshal(body, &tokens); err != nil {
+			return "", fmt.Errorf("failed to parse http response: %w", err)
+		}
+	}
+	return "", nil
 }
