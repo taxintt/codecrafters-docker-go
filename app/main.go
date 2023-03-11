@@ -122,9 +122,9 @@ func createDevNullDir(chrootDir string) error {
 func getBearerToken(image string) (string, error) {
 	var apiResponse tokenAPIResponse
 
-	response, err := http.Get(fmt.Sprintf(`http://auth.docker.io/token?service=registry.hub.docker.com&scope=repository:%s:pull`, image))
+	response, err := http.Get(fmt.Sprintf(`https://auth.docker.io/token?service=registry.hub.docker.com&scope=repository:%s:pull`, image))
 	if err != nil {
-		return "", fmt.Errorf("failed to call GET http://auth.docker.io/token: %w", err)
+		return "", fmt.Errorf("failed to call https://auth.docker.io/token: %w", err)
 	}
 	defer response.Body.Close()
 
