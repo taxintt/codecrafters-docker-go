@@ -27,6 +27,7 @@ func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	// fmt.Println("Logs from your program will appear here!")
 
+	image := os.Args[2]
 	command := os.Args[3]
 	args := os.Args[4:len(os.Args)]
 
@@ -57,7 +58,7 @@ func main() {
 		Cloneflags: syscall.CLONE_NEWPID,
 	}
 
-	token, err := getBearerToken()
+	token, err := getBearerToken(image)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -118,12 +119,10 @@ func createDevNullDir(chrootDir string) error {
 	return nil
 }
 
-func getBearerToken() (string, error) {
+func getBearerToken(image string) (string, error) {
 	var apiResponse tokenAPIResponse
-	service := "registry.hub.docker.com"
-	url := fmt.Sprintf(`http://auth.docker.io/token?service=%s`, service)
 
-	response, err := http.Get(url)
+	response, err := http.Get(fmt.Sprintf(`http://auth.docker.io/token?service=registry.hub.docker.com&scope=repository:%s:pull`, image))
 	if err != nil {
 		return "", fmt.Errorf("failed to call GET http://auth.docker.io/token: %w", err)
 	}
