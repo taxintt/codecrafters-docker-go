@@ -140,16 +140,14 @@ func createDevNullDir(chrootDir string) error {
 func getBearerToken(image string) (string, error) {
 	var apiResponse tokenAPIResponse
 
-	response, err := http.Get(fmt.Sprintf(`https://auth.docker.io/token?service=registry.docker.io`, image))
+	service := "registry.docker.io"
+	repository := strings.Split(image, ":")[0]
+
+	response, err := http.Get(fmt.Sprintf(`http://auth.docker.io/token?service=%s&scope=repository:library/%s:pull`, service, repository))
 	if err != nil {
 		return "", fmt.Errorf("failed to call https://auth.docker.io/token: %w", err)
 	}
 	defer response.Body.Close()
-
-	fmt.Println(response.StatusCode)
-	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GET http://auth.docker.io/token is not 200 OK: %w", err)
-	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -164,10 +162,10 @@ func getBearerToken(image string) (string, error) {
 }
 
 func fetchImageManifest(token, image string) (*Manifest, error) {
-	imageName := strings.Split(image, ":")[0]
-	imageTag := strings.Split(image, ":")[1]
+	repository := strings.Split(image, ":")[0]
+	tag := strings.Split(image, ":")[1]
 
-	url := fmt.Sprintf("https://registry-1.docker.io/v2/library/%s/manifests/%s", imageName, imageTag)
+	url := fmt.Sprintf("https://registry-1.docker.io/v2/library/%s/manifests/%s", repository, tag)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read http response body: %w", err)
