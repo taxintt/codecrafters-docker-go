@@ -28,19 +28,18 @@ func main() {
 	}
 	defer os.RemoveAll(chrootDir)
 
+	// copy executable file (e.g. ls)
 	if err = copyExecutableFile(command, chrootDir); err != nil {
 		log.Fatal(fmt.Errorf("failed to copy executable file: %w", err))
 	}
 
 	// workaround for chroot
 	if err := createDevNullDir(chrootDir); err != nil {
-		fmt.Printf("chroot err: %v", err)
-		os.Exit(1)
+		log.Fatal(fmt.Errorf("failed to create /dev/null file: %w", err))
 	}
 
 	if err = syscall.Chroot(chrootDir); err != nil {
-		fmt.Printf("chroot err: %v", err)
-		os.Exit(1)
+		log.Fatal(fmt.Errorf("failed to execute chroot: %w", err))
 	}
 
 	cmd := exec.Command(command, args...)
