@@ -11,10 +11,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
 
+type FsLayer struct {
+	BlobSum string `json:"blobSum"`
+}
+type Manifest struct {
+	Name     string    `json:"name"`
+	Tag      string    `json:"tag"`
+	FsLayers []FsLayer `json:"fsLayers"`
+}
 type tokenAPIResponse struct {
 	Token       string    `json:"token"`
 	AccessToken string    `json:"access_token"`
@@ -37,6 +46,21 @@ func main() {
 	}
 	defer os.RemoveAll(chrootDir)
 
+	token, err := getBearerToken(image)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	manifest, err := fetchImageManifest(token, image)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%+v\n", manifest)
+
+	// if err := extractImage(manifest); err != nil {
+	// 	log.Fatal(err)
+	// }
+
 	// copy executable file (e.g. ls)
 	if err = copyExecutableFile(command, chrootDir); err != nil {
 		log.Fatal(err)
@@ -57,12 +81,6 @@ func main() {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWPID,
 	}
-
-	token, err := getBearerToken(image)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(token) // debug
 
 	if err := cmd.Run(); err != nil {
 		exitErr := &exec.ExitError{}
@@ -142,4 +160,30 @@ func getBearerToken(image string) (string, error) {
 	}
 
 	return "", fmt.Errorf("GET http://auth.docker.io/token is not 200 OK: %w", err)
+}
+
+func fetchImageManifest(token, image string) (*Manifest, error) {
+	imageName := strings.Split(image, ":")[0]
+	imageTag := strings.Split(image, ":")[1]
+
+	url := fmt.Sprintf("https://registry-1.docker.io/v2/library/%s/manifests/%s", imageName, imageTag)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read http response body: %w", err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read http response body: %w", err)
+	}
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read http response body: %w", err)
+	}
+
+	var manifest Manifest
+	return &manifest, json.Unmarshal(body, &manifest)
 }
