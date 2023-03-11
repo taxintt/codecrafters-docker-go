@@ -146,20 +146,21 @@ func getBearerToken(image string) (string, error) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode == http.StatusOK {
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return "", fmt.Errorf("failed to read http response body: %w", err)
-		}
-
-		if err := json.Unmarshal(body, &apiResponse); err != nil {
-			return "", fmt.Errorf("failed to parse http response: %w", err)
-		}
-
-		return apiResponse.Token, nil
+	fmt.Println(response.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GET http://auth.docker.io/token is not 200 OK: %w", err)
 	}
 
-	return "", fmt.Errorf("GET http://auth.docker.io/token is not 200 OK: %w", err)
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read http response body: %w", err)
+	}
+
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return "", fmt.Errorf("failed to parse http response: %w", err)
+	}
+
+	return apiResponse.Token, nil
 }
 
 func fetchImageManifest(token, image string) (*Manifest, error) {
