@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -136,11 +135,11 @@ func createDevNullDir(chrootDir string) error {
 	return nil
 }
 
-func getBearerToken(image string) (string, error) {
+func getBearerToken(repository string) (string, error) {
 	var apiResponse tokenAPIResponse
 
 	service := "registry.docker.io"
-	repository := strings.Split(image, ":")[0]
+	// repository := strings.Split(image, ":")[0]
 
 	response, err := http.Get(fmt.Sprintf(`http://auth.docker.io/token?service=%s&scope=repository:library/%s:pull`, service, repository))
 	if err != nil {
@@ -160,9 +159,10 @@ func getBearerToken(image string) (string, error) {
 	return apiResponse.Token, nil
 }
 
-func fetchImageManifest(token, image string) (*Manifest, error) {
-	repository := strings.Split(image, ":")[0]
-	tag := strings.Split(image, ":")[1]
+func fetchImageManifest(token, repository string) (*Manifest, error) {
+	// repository := strings.Split(image, ":")[0]
+	// tag := strings.Split(image, ":")[1]
+	tag := "latest"
 
 	url := fmt.Sprintf("https://registry-1.docker.io/v2/library/%s/manifests/%s", repository, tag)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -186,8 +186,8 @@ func fetchImageManifest(token, image string) (*Manifest, error) {
 	return &manifest, json.Unmarshal(body, &manifest)
 }
 
-func extractImage(rootDir, token, image string, manifest *Manifest) error {
-	repository := strings.Split(image, ":")[0]
+func extractImage(rootDir, token, repository string, manifest *Manifest) error {
+	// repository := strings.Split(image, ":")[0]
 
 	for index, digest := range manifest.FsLayers {
 		if err := fetchLayer(rootDir, token, repository, digest, index); err != nil {
