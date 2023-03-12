@@ -55,11 +55,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%+v\n", manifest)
 
-	// if err := extractImage(manifest); err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err := extractImage(chrootDir, token, image, manifest); err != nil {
+		log.Fatal(err)
+	}
 
 	// copy executable file (e.g. ls)
 	if err = copyExecutableFile(command, chrootDir); err != nil {
@@ -121,10 +120,10 @@ func copyExecutableFile(command, rootDir string) error {
 }
 
 func createDevNullDir(chrootDir string) error {
-	err := os.Mkdir(filepath.Join(chrootDir, "dev"), os.ModeDir)
-	if err != nil {
-		return fmt.Errorf("failed to create /dev directory: %w", err)
-	}
+	// err := os.Mkdir(filepath.Join(chrootDir, "dev"), os.ModeDir)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create /dev directory: %w", err)
+	// }
 
 	devnull, err := os.Create(filepath.Join(chrootDir, "/dev/null"))
 	if err != nil {
@@ -185,4 +184,65 @@ func fetchImageManifest(token, image string) (*Manifest, error) {
 
 	var manifest Manifest
 	return &manifest, json.Unmarshal(body, &manifest)
+}
+
+func extractImage(rootDir, token, image string, manifest *Manifest) error {
+	repository := strings.Split(image, ":")[0]
+
+	for index, digest := range manifest.FsLayers {
+		if err := fetchLayer(rootDir, token, repository, digest, index); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func fetchLayer(rootDir, token, repository string, fsLayer FsLayer, index int) error {
+	var response *http.Response
+
+	url := fmt.Sprintf("https://registry-1.docker.io/v2/library/%s/blobs/%s", repository, fsLayer.BlobSum)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to read http response body: %w", err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	response, err = http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to read http response body: %w", err)
+	}
+	defer response.Body.Close()
+
+	// Temporary Redirect
+	if response.StatusCode == 307 {
+		redirectUrl := response.Header.Get("location")
+		req, err := http.NewRequest(http.MethodGet, redirectUrl, nil)
+		if err != nil {
+			return fmt.Errorf("failed to read http response body: %w", err)
+		}
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+		response, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to read http response body: %w", err)
+		}
+		defer response.Body.Close()
+	}
+
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	tarball := fmt.Sprintf("%s.tar", fsLayer.BlobSum)
+	if err := ioutil.WriteFile(tarball, data, 0644); err != nil {
+		return err
+	}
+	defer os.Remove(tarball)
+
+	cmd := exec.Command("tar", "xpf", tarball, "-C", rootDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
