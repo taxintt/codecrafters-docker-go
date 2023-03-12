@@ -100,7 +100,14 @@ func copyExecutableFile(command, rootDir string) error {
 		return fmt.Errorf("failed to get source file info: %w", err)
 	}
 
-	dst, err := os.OpenFile(filepath.Join(rootDir, command), os.O_CREATE|os.O_WRONLY, srcInfo.Mode())
+	destinationPath := filepath.Join(rootDir, command)
+	if _, err := os.Stat(destinationPath); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	dst, err := os.OpenFile(destinationPath, os.O_CREATE|os.O_WRONLY, srcInfo.Mode())
 	if err != nil {
 		return fmt.Errorf("failed to open destination file: %w", err)
 	}
